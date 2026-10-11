@@ -95,6 +95,12 @@ export async function handleAccountRequest(request, env, fetcher = fetch) {
         return json({ error: '请填写名称，并确认已获得声音授权。' }, 400);
       }
       if (!env.DASHSCOPE_API_KEY || !env.DASHSCOPE_WORKSPACE_ID) return json({ error: '百炼服务尚未配置。' }, 503);
+      let publicOrigin;
+      try { publicOrigin = new URL(env.PUBLIC_ORIGIN); } catch {}
+      if (!publicOrigin || publicOrigin.protocol !== 'https:' ||
+          ['localhost', '[::1]'].includes(publicOrigin.hostname) || /^127\./.test(publicOrigin.hostname)) {
+        return json({ error: '音色复刻需要厂商可访问的公网 HTTPS 地址；localhost 可测试对话、记忆和音色试听。' }, 400);
+      }
       const sample = Buffer.from(match[2], 'base64');
       if (!sample.length || sample.length > 5_000_000) return json({ error: '录音文件不能超过 5MB。' }, 413);
       const token = randomBytes(32).toString('hex');
@@ -104,7 +110,7 @@ export async function handleAccountRequest(request, env, fetcher = fetch) {
       await writeFile(samplePath, sample, { mode: 0o600 });
       setTimeout(() => unlink(samplePath).catch(() => {}), 10 * 60 * 1000).unref();
       const prefix = `u${createHash('sha256').update(user + input.name).digest('hex').slice(0, 9)}`;
-      const sampleUrl = `${env.PUBLIC_ORIGIN || 'https://gptimg2.you'}/voice-lab/api/voice-samples/${token}`;
+      const sampleUrl = `${publicOrigin.origin}/voice-lab/api/voice-samples/${token}`;
       let upstream;
       try {
         upstream = await fetcher(endpointOf(env), {

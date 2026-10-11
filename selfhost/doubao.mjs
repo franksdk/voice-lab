@@ -9,10 +9,11 @@ export function buildDoubaoConfig(p){
  const dialect=dialects.includes(p.language)&&voice.startsWith('zh_')?p.language:undefined;
  return {asr:{extra:{}},tts:{extra:dialect?{explicit_dialect:dialect}:{},speaker:voice,audio_config:{channel:1,format:'pcm_s16le',sample_rate:24000}},dialog:{bot_name:'小树',system_role:sessionUpdate(p.scenario,p.notes,'','qwen-audio-3.0-realtime-flash','websocket',p.language).session.instructions,extra:{model:'1.2.1.1',input_mod:'keep_alive'}}};
 }
-export function attachDoubao(server,env){
+export function attachDoubao(server,env,{authorizeUpgrade}={}){
  const wss=new WebSocketServer({noServer:true,maxPayload:8192,perMessageDeflate:false});
  let count=0;
  server.on('upgrade',(req,socket,head)=>{
+  if(authorizeUpgrade&&!authorizeUpgrade(req,socket))return;
   if(req.url!=='/voice-lab/api/doubao'||!authorized(req.headers,env)){socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;}
   if(!env.VOLCENGINE_APP_ID||!env.VOLCENGINE_ACCESS_KEY||count>=4){socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n');return;}
   wss.handleUpgrade(req,socket,head,client=>{
