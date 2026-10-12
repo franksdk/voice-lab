@@ -46,3 +46,8 @@ next-env.d.ts
 /dist-selfhost/
 /data/
 /deploy/__pycache__/
+
+/dist-cloudflare/
+/.deployment/
+
+.dev.vars*

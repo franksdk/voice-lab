@@ -1,5 +1,7 @@
 # Voice Lab
 
+本 fork 新增中英双语界面及 Cloudflare Workers 完整部署适配，详见 [Cloudflare 部署与双语说明](CLOUDFLARE.md)。 / This fork adds Chinese/English UI and a Cloudflare Workers deployment. See [deployment instructions](CLOUDFLARE.md).
+
 实时语音对话体验站，包含网页界面、阿里百炼与豆包实时语音适配、账号记忆、近期对话保存、音色试听和百炼音色复刻。使用独立 Node 服务和浏览器账号登录，不依赖原网站服务器或 ChatGPT 登录。
 
 本仓库包含 Voice Lab 的前后端代码；模型推理由云厂商提供，不包含模型权重。电话页面目前用于整理接入配置草稿，**尚未实现真实电话拨打或接听**。

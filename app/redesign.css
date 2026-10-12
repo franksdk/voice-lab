@@ -414,3 +414,5 @@ footer i { color: #b4bdc9; }
 @media (prefers-reduced-motion: reduce) {
   .voice-visual::before, .wave-bars span, .live .orbit-one, .live .orbit-two { animation: none!important; }
 }
+
+.language-switch{display:flex;gap:4px;border:1px solid #cdd5e0;border-radius:8px;padding:3px;margin-left:auto}.language-switch button{border:0;background:transparent;color:inherit;padding:7px 10px;cursor:pointer;border-radius:5px;font:inherit;font-size:12px}.language-switch button[aria-pressed=true]{background:#173f79;color:white}.language-switch button:focus-visible{outline:2px solid #497de8;outline-offset:2px}html[lang=en] .studio h1{font-size:clamp(24px,3vw,38px)}html[lang=en] .provider small{white-space:normal}html[lang=en] .scenario{min-height:50px}html[lang=en] .studio-nav a{white-space:nowrap}@media(max-width:700px){.studio-header{flex-wrap:wrap;height:auto;gap:12px;padding-block:16px}.language-switch{margin-left:0}.studio-header .back{margin-left:auto}html[lang=en] .phone-call-path{flex-wrap:wrap}.phone-direction button{min-width:0}}

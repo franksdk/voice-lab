@@ -104,7 +104,7 @@ export async function handlePreview(request, env) {
   try { input = await request.json(); } catch { return json({ error: '请求格式不正确。' }, 400); }
   if (activePreviews >= 2) return json({ error: '正在试听的人较多，请稍后再试。' }, 429);
   try {
-    const custom = (await voicesForUser(env.DATA_DIR || '/data', user)).filter(item => item.provider === 'aliyun' && item.status !== 'UNDEPLOYED').map(item => item.id);
+    const custom = (await voicesForUser(env.STORAGE || env.DATA_DIR || '/data', user)).filter(item => item.provider === 'aliyun' && item.status !== 'UNDEPLOYED').map(item => item.id);
     const selection = previewSelection(input.provider, input.language, input.voice, custom);
     if (selection.provider === 'aliyun' && (!env.DASHSCOPE_API_KEY || !env.DASHSCOPE_WORKSPACE_ID)) return json({ error: '百炼服务尚未配置。' }, 503);
     if (selection.provider === 'doubao' && (!env.VOLCENGINE_APP_ID || !env.VOLCENGINE_ACCESS_KEY)) return json({ error: '豆包服务尚未配置。' }, 503);

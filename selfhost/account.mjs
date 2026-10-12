@@ -12,6 +12,7 @@ const providerHeaders = env => ({ Authorization: `Bearer ${env.DASHSCOPE_API_KEY
 export async function handleVoiceSampleRequest(request, env) {
   const token = new URL(request.url).pathname.split('/').at(-1) || '';
   if (request.method !== 'GET' || !/^[a-f0-9]{64}$/.test(token)) return json({ error: 'Not found' }, 404);
+  if (env.STORAGE) return env.STORAGE.sampleResponse(token);
   const sampleDir = join(env.DATA_DIR || '/data', 'voice-samples');
   for (const [extension, contentType] of [['wav','audio/wav'],['mpeg','audio/mpeg'],['mp4','audio/mp4']]) {
     const path = join(sampleDir, `${token}.${extension}`);
@@ -26,6 +27,7 @@ export async function handleVoiceSampleRequest(request, env) {
 }
 
 async function load(dataDir, user) {
+  if (typeof dataDir === 'object') return { ...initial(), ...await dataDir.getAccount(user) };
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
   try { return { ...initial(), ...JSON.parse(await readFile(fileOf(dataDir, user), 'utf8')) }; }
   catch (error) { if (error.code === 'ENOENT') return initial(); throw error; }
@@ -36,6 +38,7 @@ export async function voicesForUser(dataDir, user) {
 }
 
 async function save(dataDir, user, account) {
+  if (typeof dataDir === 'object') return dataDir.putAccount(user, account);
   const target = fileOf(dataDir, user);
   const pending = `${target}.${randomUUID()}.tmp`;
   await writeFile(pending, `${JSON.stringify(account)}\n`, { encoding: 'utf8', mode: 0o600 });
@@ -60,7 +63,7 @@ function contextOf(account) {
 export async function handleAccountRequest(request, env, fetcher = fetch) {
   const user = userOf(request);
   if (!user || user.length > 128) return json({ error: '请重新登录。' }, 401);
-  const dataDir = env.DATA_DIR || '/data';
+  const dataDir = env.STORAGE || env.DATA_DIR || '/data';
   const pathname = new URL(request.url).pathname;
   try {
     const account = await load(dataDir, user);
@@ -104,11 +107,15 @@ export async function handleAccountRequest(request, env, fetcher = fetch) {
       const sample = Buffer.from(match[2], 'base64');
       if (!sample.length || sample.length > 5_000_000) return json({ error: '录音文件不能超过 5MB。' }, 413);
       const token = randomBytes(32).toString('hex');
+      let samplePath;
+      if (env.STORAGE) await env.STORAGE.putSample(token, sample, match[1]);
+      else {
       const sampleDir = join(dataDir, 'voice-samples');
       await mkdir(sampleDir, { recursive: true, mode: 0o700 });
-      const samplePath = join(sampleDir, `${token}.${match[1]}`);
+      samplePath = join(sampleDir, `${token}.${match[1]}`);
       await writeFile(samplePath, sample, { mode: 0o600 });
       setTimeout(() => unlink(samplePath).catch(() => {}), 10 * 60 * 1000).unref();
+      }
       const prefix = `u${createHash('sha256').update(user + input.name).digest('hex').slice(0, 9)}`;
       const sampleUrl = `${publicOrigin.origin}/voice-lab/api/voice-samples/${token}`;
       let upstream;
@@ -118,7 +125,7 @@ export async function handleAccountRequest(request, env, fetcher = fetch) {
           headers: providerHeaders(env),
           body: JSON.stringify({ model: 'voice-enrollment', input: { action: 'create_voice', target_model: env.DASHSCOPE_MODEL || 'qwen-audio-3.0-realtime-flash', prefix, url: sampleUrl } }),
         });
-      } finally { await unlink(samplePath).catch(() => {}); }
+      } finally { if (env.STORAGE) await env.STORAGE.deleteSample(token); else await unlink(samplePath).catch(() => {}); }
       const response = await upstream.json().catch(() => ({}));
       if (!upstream.ok || typeof response?.output?.voice_id !== 'string') return json({ error: upstream.status === 401 || upstream.status === 403 ? '百炼拒绝创建音色，请检查复刻权限。' : '音色创建失败，请检查录音格式后重试。' }, 502);
       const voice = { provider: 'aliyun', id: response.output.voice_id, name: input.name.trim().slice(0, 30) };
