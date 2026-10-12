@@ -24,7 +24,7 @@ export default function PhoneLab() {
   const update = (key: keyof Draft, value: string) => { setDraft(d => ({ ...d, [key]: value })); setSaved('有未保存的修改'); };
 
   useEffect(() => {
-    
+
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {

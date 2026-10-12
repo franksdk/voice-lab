@@ -26,11 +26,22 @@ export default {
     if (url.pathname === '/' || url.pathname === '/voice-lab') return Response.redirect(url.origin + '/voice-lab/', 302);
     if (url.pathname.startsWith('/voice-lab/api/')) {
       const headers = new Headers(request.headers); headers.set('x-voice-user', env.VOICE_USERNAME || 'admin');
-      const forwarded = new Request(request, { headers });
+      let body;
+      if (request.body) {
+        const reader = request.body.getReader(); const chunks = []; let size = 0;
+        while (true) {
+          const {done, value} = await reader.read(); if (done) break;
+          size += value.byteLength;
+          if (size > 7_000_000) { await reader.cancel(); return json({error: 'Request too large'}, 413); }
+          chunks.push(value);
+        }
+        body = Buffer.concat(chunks);
+      }
+      const forwarded = new Request(request.url, { method: request.method, headers, body, signal: request.signal });
       return env.VOICE_STATE.get(env.VOICE_STATE.idFromName('voice-lab')).fetch(forwarded);
     }
     if (!['GET','HEAD'].includes(request.method)) return new Response('Method not allowed', { status: 405 });
-    if (url.pathname === '/voice-lab/phone' || url.pathname === '/voice-lab/phone/') url.pathname = '/voice-lab/index.html';
+    if (url.pathname === '/voice-lab/phone' || url.pathname === '/voice-lab/phone/') url.pathname = '/voice-lab/';
     const response = await env.ASSETS.fetch(new Request(url, request));
     const headers = new Headers(response.headers);
     headers.set('Cache-Control', 'private, no-store'); headers.set('X-Content-Type-Options', 'nosniff'); headers.set('X-Frame-Options', 'DENY'); headers.set('Referrer-Policy', 'no-referrer'); headers.set('Permissions-Policy', 'microphone=(self), camera=(), geolocation=()');

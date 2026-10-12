@@ -12,7 +12,7 @@ await check('authenticated pages and static assets load',async()=>{
  const response=await request('/voice-lab/');assert.equal(response.status,200);const html=await response.text();
  const assets=[...html.matchAll(/(?:src|href)="(\/voice-lab\/assets\/[^\"]+)"/g)];assert.ok(assets.length>=2);
  for(const [,path]of assets)assert.equal((await request(path)).status,200);
- assert.equal((await request('/voice-lab/phone/')).status,200);
+ const phone=await request('/voice-lab/phone/',{redirect:'manual'});assert.equal(phone.status,200);assert.ok((await phone.text()).includes('id="root"'));
 });
 await check('configuration does not expose secrets',async()=>{const response=await request('/voice-lab/api/config');assert.equal(response.status,200);const text=await response.text();assert.ok(!text.includes(password));assert.equal(JSON.parse(text).ready,false);});
 await check('forged account headers cannot change identity',async()=>{const account=await(await request('/voice-lab/api/account',{headers:{'x-voice-user':'attacker'}})).json();assert.equal(account.user,'admin');});
